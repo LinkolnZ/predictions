@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ромашка&#8209;предсказание</title>
+<meta name="description" content="Погадай на ромашке — выбирай лепесток и узнавай предсказание на рабочий день.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,900&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#fff7ec; --cream-deep:#fdefd8; --peach:#ffcaa3; --peach-soft:#ffe1c9;
+    --terracotta:#d97a54; --terracotta-deep:#b85c3a; --mint:#a8d8c4; --mint-deep:#6fb69a;
+    --ink:#5a4634; --ink-soft:#8a7660;
+    --shadow-soft: 0 10px 30px -12px rgba(120,78,45,.35);
+    --shadow-card: 0 26px 70px -18px rgba(120,78,45,.5);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    font-family:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+    font-feature-settings:"kern" 1,"liga" 1; text-rendering:optimizeLegibility;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 12% -10%, var(--peach-soft), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, #d9efe4, transparent 55%),
+      linear-gradient(160deg, var(--cream) 0%, var(--cream-deep) 100%);
+    background-attachment:fixed; min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column; line-height:1.5;
+  }
+
+  header{ display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.1rem clamp(1rem,4vw,2.5rem); flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:.7rem; }
+  .brand-mark{ width:44px; height:44px; flex:none; filter:drop-shadow(0 4px 8px rgba(217,122,84,.3)); }
+  .brand-mark svg{ width:100%; height:100%; }
+  .brand-title{ display:inline-flex; flex-wrap:wrap; gap:3px; max-width:min(74vw,540px); vertical-align:middle; }
+  .rn{ display:inline-block; padding:.04em .16em .06em; border-radius:3px; line-height:.95;
+    font-size:clamp(1.05rem,3vw,1.5rem); box-shadow:0 2px 5px rgba(80,55,35,.28);
+    transition:transform .15s ease; }
+  .rn.sans{ font-family:'Oswald',sans-serif; font-weight:700; }
+  .rn.serif{ font-family:'Playfair Display',serif; font-weight:900; }
+  .rn:hover{ transform:rotate(0deg) scale(1.12) !important; z-index:2; }
+  .brand-tag{ font-size:.78rem; color:var(--mint-deep); font-weight:700; letter-spacing:.04em; }
+  .handle{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:.95rem; color:#fff;
+    background:linear-gradient(135deg,var(--terracotta),var(--peach)); padding:.5rem 1rem; border-radius:999px;
+    box-shadow:var(--shadow-soft); white-space:nowrap; text-decoration:none; }
+
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:clamp(.3rem,2vw,1rem) 1rem 2rem; width:100%; }
+  .lead{ text-align:center; max-width:40ch; margin:.2rem auto 1rem; color:var(--ink-soft); font-size:clamp(1rem,2.5vw,1.12rem); }
+  .lead b{ color:var(--terracotta-deep); font-weight:800; }
+
+  /* ── Сцена: чистое фото ромашки ── */
+  .stage{
+    position:relative; width:min(94vw, 620px, 50vh); aspect-ratio:600/1010;
+    border-radius:26px; overflow:hidden; background-color:#f6ead2;
+    box-shadow:var(--shadow-soft), inset 0 0 0 1px rgba(255,255,255,.5);
+    user-select:none; -webkit-tap-highlight-color:transparent;
+  }
+  /* Фото кадрируется трансформом: показываем окно [700..1300]×[80..1090] исходника */
+  .stage-photo{
+    position:absolute; top:0; left:0; width:333.33%; height:auto;
+    transform:translate(-35%, -7.33%);
+    pointer-events:none; -webkit-user-drag:none; user-select:none;
+  }
+  .zones{ position:absolute; inset:0; }
+
+  /* Невидимые кликабельные зоны поверх настоящих лепестков */
+  .zone{
+    position:absolute; transform-origin:center; border-radius:46%/50%;
+    border:none; padding:0; background:transparent; appearance:none; -webkit-appearance:none;
+    cursor:pointer; touch-action:manipulation;
+    transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, background .25s ease;
+  }
+  @media (hover:hover){
+    .zone:hover{
+      background:radial-gradient(closest-side, rgba(255,255,255,.55), rgba(255,255,255,0) 75%);
+      box-shadow:0 0 18px 2px rgba(255,236,205,.7);
+    }
+  }
+  .zone:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--mint-deep); }
+  .zone.tap{ animation:tap .35s ease; }
+  @keyframes tap{ 0%{ transform:var(--rot) scale(1);} 50%{ transform:var(--rot) scale(1.12);} 100%{ transform:var(--rot) scale(1);} }
+
+  /* ── Карточка предсказания ── */
+  .card-overlay{ position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:1.2rem;
+    background:rgba(90,70,52,.34); backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .card-overlay.show{ opacity:1; pointer-events:auto; }
+
+  .petal-card{
+    position:relative; width:min(84vw,330px); min-height:330px;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center;
+    padding:2.4rem 2.1rem 2.4rem;
+    background:linear-gradient(165deg,#fffdf9 0%, #fff2e0 100%);
+    border:1px solid rgba(255,255,255,.8);
+    border-radius:46%/28% 28% 22% 22%; border-radius:34px;
+    box-shadow:var(--shadow-card);
+    transform:scale(.5) translateY(30px); opacity:0;
+    transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  }
+  .card-overlay.show .petal-card{ transform:scale(1) translateY(0); opacity:1; }
+
+  /* Увеличенный кусочек выбранного лепестка (настоящее фото) */
+  .card-sun{
+    width:120px; height:120px; margin-top:-70px; margin-bottom:.6rem;
+    border-radius:50%; background:linear-gradient(160deg,#fffdf9,#fff2e0);
+    border:6px solid #fff; box-shadow:0 12px 26px -8px rgba(120,78,45,.5);
+    display:grid; place-items:center;
+  }
+  .card-sun svg{ width:82%; height:82%; }
+  .card-eyebrow{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:.76rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--mint-deep); margin-bottom:.5rem; }
+  .card-text{ font-size:clamp(1rem,3.4vw,1.14rem); font-weight:600; line-height:1.5; color:var(--ink); max-width:26ch; }
+  .card-hint{ margin-top:1.2rem; font-size:.8rem; color:var(--ink-soft); font-weight:700; opacity:.85; }
+  .card-x{ position:absolute; top:1rem; right:1.2rem; width:34px; height:34px; border:none; cursor:pointer;
+    border-radius:50%; background:rgba(217,122,84,.14); color:var(--terracotta-deep); font-size:1.2rem; line-height:1;
+    display:grid; place-items:center; transition:background .2s ease; z-index:2; }
+  .card-x:hover{ background:rgba(217,122,84,.24); }
+
+  .controls{ display:flex; align-items:center; justify-content:center; gap:.8rem; flex-wrap:wrap; margin-top:1.4rem; }
+  .btn{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:1rem; cursor:pointer; border-radius:999px;
+    padding:.8rem 1.7rem; border:none; transition:transform .2s ease, filter .2s ease, box-shadow .2s ease; }
+  .btn-primary{ color:#fff; background:linear-gradient(135deg,var(--terracotta),var(--terracotta-deep)); box-shadow:var(--shadow-soft); }
+  .btn-primary:hover{ transform:translateY(-2px); filter:brightness(1.05); }
+  .btn-ghost{ color:var(--terracotta-deep); background:rgba(255,255,255,.7); box-shadow:inset 0 0 0 2px rgba(217,122,84,.35);
+    font-size:.88rem; padding:.7rem 1.2rem; }
+  .btn-ghost:hover{ background:#fff; }
+  .btn-ghost.on{ color:#fff; background:linear-gradient(135deg,var(--mint-deep),var(--mint)); box-shadow:var(--shadow-soft); }
+
+  .hint-line{ margin-top:.9rem; font-size:.92rem; color:var(--ink-soft); font-weight:700; }
+  .calib-hint{ max-width:46ch; margin:.7rem auto 0; font-size:.8rem; text-align:center; color:var(--ink-soft);
+    background:rgba(255,255,255,.6); border-radius:14px; padding:.6rem .9rem; line-height:1.45; }
+  .calib-hint code{ font-family:'Quicksand',monospace; background:rgba(217,122,84,.14); color:var(--terracotta-deep);
+    padding:.05em .4em; border-radius:6px; font-weight:700; }
+  .hidden{ display:none; }
+
+  footer{ text-align:center; padding:1.4rem 1rem 2rem; color:var(--ink-soft); font-size:.85rem; }
+  footer .heart{ color:var(--terracotta); }
+
+  @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition-duration:.01ms !important; } }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none">
+          <defs>
+            <linearGradient id="logoPetal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffd9b8"/>
+              <stop offset="100%" stop-color="#e08a5f"/>
+            </linearGradient>
+          </defs>
+          <g fill="url(#logoPetal)">
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(0 50 50)"/>
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(60 50 50)"/>
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(120 50 50)"/>
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(180 50 50)"/>
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(240 50 50)"/>
+            <rect x="42" y="6"  width="16" height="40" rx="8" transform="rotate(300 50 50)"/>
+          </g>
+          <circle cx="50" cy="50" r="15" fill="#ffcf4d"/>
+          <circle cx="50" cy="50" r="15" fill="none" stroke="#e9b23a" stroke-width="2.5"/>
+        </svg>
+      </span>
+      <span>
+        <span class="brand-title" id="brandTitle" aria-label="Ромашка-предсказание"></span><br>
+        <span class="brand-tag">гадаем на рабочий день</span>
+      </span>
+    </div>
+    <a class="handle" href="https://t.me/soglasoval" target="_blank" rel="noopener">@soglasoval</a>
+  </header>
+
+  <main>
+    <p class="lead">Выбери любой лепесток&nbsp;— он подскажет тебе <b>предсказание на день</b>.</p>
+
+    <div class="stage" id="stage" aria-label="Бумажная ромашка в горшке">
+      <img class="stage-photo" src="flower.jpg" alt="Бумажная ромашка в горшке на рабочем столе">
+
+      <div class="zones" id="zones"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="shuffleBtn">🔀 Перемешать предсказания</button>
+    </div>
+
+    <p class="hint-line" id="hintLine">Нажми на лепесток 🌸</p>
+  </main>
+
+  <footer>
+    <p>Сделано с&nbsp;<span class="heart">❤</span>&nbsp; для тёплых рабочих будней · <b>@soglasoval</b></p>
+    <p>&copy;&nbsp;2026 Ромашка&#8209;предсказание. Все лепестки защищены.</p>
+  </footer>
+
+  <div class="card-overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="cardText">
+    <div class="petal-card">
+      <button class="card-x" id="cardX" aria-label="Закрыть">×</button>
+      <div class="card-sun" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <filter id="sunPaper" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#a8632f" flood-opacity="0.35"/>
+            </filter>
+            <linearGradient id="sunRay" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ffd06b"/>
+              <stop offset="100%" stop-color="#f4a63c"/>
+            </linearGradient>
+            <radialGradient id="sunCore" cx="40%" cy="36%" r="70%">
+              <stop offset="0%" stop-color="#ffe08a"/>
+              <stop offset="100%" stop-color="#ffbf3d"/>
+            </radialGradient>
+          </defs>
+          <g filter="url(#sunPaper)">
+            <g fill="url(#sunRay)">
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(0 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(45 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(90 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(135 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(180 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(225 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(270 50 50)"/>
+              <rect x="45" y="6" width="10" height="20" rx="5" transform="rotate(315 50 50)"/>
+            </g>
+            <circle cx="50" cy="50" r="27" fill="url(#sunCore)"/>
+            <circle cx="50" cy="50" r="27" fill="none" stroke="#eaa62f" stroke-width="2.5"/>
+            <circle cx="42" cy="42" r="9" fill="#fff0c2" opacity="0.7"/>
+          </g>
+        </svg>
+      </div>
+      <p class="card-eyebrow">Твоё предсказание</p>
+      <p class="card-text" id="cardText"></p>
+      <p class="card-hint">нажми, чтобы закрыть 🌼</p>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   РОМАШКА-ПРЕДСКАЗАНИЕ
+   Кликают по НАСТОЯЩИМ лепесткам фото (невидимые зоны сверху).
+   Координаты — в системе фото, кадр совпадает с фоном .stage.
+   Правь config под своё фото; кнопка «Показать зоны» подсветит их.
+   ============================================================ */
+const config = {
+  cx: 1002, cy: 345,   // центр цветка (в координатах фото)
+  rInner: 82, rOuter: 236, petalW: 60,
+  count: 12,           // число лепестков на фото
+  startDeg: 0,         // поворот первого лепестка (0 = вверх), по часовой
+};
+
+/* Кадр фона: окно фото [VX..VX+VW] × [VY..VY+VH] (совпадает с .stage) */
+const VIEW = { x:700, y:80, w:600, h:1010 };
+
+const predictions = [
+  "Жди вестей о скором повышении. Начальство уже присматривается к тебе внимательнее обычного, а слухи в коридорах на этот раз играют в твою пользу.",
+  "Начальник наконец-то тебя похвалит. Причём сделает это при всех, и тебе даже станет немного неловко от такого внимания. Ты честно заслужил.",
+  "Офисный краш позовёт на кофе в обеденный перерыв. Разговор выйдет неожиданно лёгким и тёплым, а пятнадцать минут пролетят как одна секунда.",
+  "Коллеги выдумают нелепую сплетню о тебе — будь настороже. История получится смешной до абсурда, но кто-то может принять её всерьёз. Сохраняй чувство юмора.",
+  "Созвонов сегодня не будет — выдыхай. Календарь чудесным образом остался чистым, и ни одна встреча не покусится на твоё время. Можно спокойно поработать.",
+  "Премия придёт раньше зарплаты. Приятный сюрприз от бухгалтерии застанет тебя врасплох в лучшем смысле этого слова. Самое время себя побаловать.",
+  "Отпустят с работы пораньше. Дела внезапно сложатся так, что задерживаться не будет смысла, и вечер окажется полностью твоим.",
+  "Пригласят в крысиный чатик для избранных коллег. Там кипит вся настоящая офисная жизнь — мемы, инсайды и честные мнения. Добро пожаловать в клуб!",
+  "Ура! Чужую срочную задачу повесят не на тебя. Горящий проект в последний момент уплывёт к кому-то другому, и ты выдохнешь с облегчением.",
+  "Пу-пу-пу, сегодня задержишься на работе чуть дольше, чем хотелось бы. Ничего страшного — зато завтра всё будет гораздо легче. Держись!",
+];
+
+const stage    = document.getElementById('stage');
+const zonesBox  = document.getElementById('zones');
+const overlay  = document.getElementById('overlay');
+const cardText = document.getElementById('cardText');
+const hintLine = document.getElementById('hintLine');
+
+let deck = [];       // перемешанная колода предсказаний
+let lastText = null;
+
+/* Перемешиваем предсказания (Фишер–Йейтс) */
+function shuffle(){
+  deck = predictions.slice();
+  for(let i=deck.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [deck[i],deck[j]] = [deck[j],deck[i]];
+  }
+  // чтобы первое после перемешивания не совпало с последним показанным
+  if(lastText && deck[0] === lastText && deck.length>1){ [deck[0],deck[1]]=[deck[1],deck[0]]; }
+}
+function drawPrediction(){
+  if(deck.length === 0) shuffle();
+  const t = deck.pop();
+  lastText = t;
+  return t;
+}
+
+/* image-координаты центра лепестка i */
+function petalCenter(i){
+  const step = 360/config.count;
+  const rMid = (config.rInner + config.rOuter)/2;
+  const th = (config.startDeg + i*step) * Math.PI/180;
+  return { x: config.cx + rMid*Math.sin(th), y: config.cy - rMid*Math.cos(th), deg: config.startDeg + i*step };
+}
+
+/* Строим невидимые зоны поверх лепестков */
+function buildZones(){
+  zonesBox.innerHTML = '';
+  const { rInner, rOuter, petalW, count } = config;
+
+  for(let i=0;i<count;i++){
+    const c = petalCenter(i);
+    const z = document.createElement('button');
+    z.type = 'button';
+    z.className = 'zone';
+    z.setAttribute('aria-label', 'Лепесток ' + (i+1) + ' — узнать предсказание');
+    z.style.left   = (c.x - VIEW.x)/VIEW.w*100 + '%';
+    z.style.top    = (c.y - VIEW.y)/VIEW.h*100 + '%';
+    z.style.width  = petalW/VIEW.w*100 + '%';
+    z.style.height = (rOuter - rInner)/VIEW.h*100 + '%';
+    const rot = `translate(-50%,-50%) rotate(${c.deg}deg)`;
+    z.style.setProperty('--rot', rot);
+    z.style.transform = rot;
+    z.addEventListener('click', ()=> choosePetal(z, i));
+    zonesBox.appendChild(z);
+  }
+}
+
+/* Клик по лепестку: предсказание с солнышком */
+function choosePetal(zoneEl, i){
+  zoneEl.classList.remove('tap'); void zoneEl.offsetWidth; zoneEl.classList.add('tap');
+  cardText.textContent = drawPrediction();
+  overlay.classList.add('show');
+  hintLine.textContent = 'Красивое 🌼 закрой и попробуй ещё';
+}
+
+/* Закрытие → перемешиваем колоду заново, лепестки все на месте */
+function closeCard(){
+  overlay.classList.remove('show');
+  shuffle();
+}
+overlay.addEventListener('click', (e)=>{ if(e.target === overlay || e.target.closest('.petal-card')) closeCard(); });
+document.getElementById('cardX').addEventListener('click', (e)=>{ e.stopPropagation(); closeCard(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeCard(); });
+
+/* Кнопка «перемешать» */
+document.getElementById('shuffleBtn').addEventListener('click', ()=>{
+  shuffle();
+  hintLine.textContent = 'Предсказания перемешаны 🔀 выбирай лепесток';
+});
+
+/* Заголовок в стиле «вырезки из журнала» (ransom note) */
+(function ransomTitle(){
+  const el = document.getElementById('brandTitle');
+  const text = 'Ромашка-предсказание';
+  const palette = [
+    ['#c0392b','#fff4e6'],  // красный
+    ['#e8b84b','#3a2a1a'],  // горчичный
+    ['#2f2a3d','#f3ead6'],  // тёмно-синий / кремовый
+    ['#e88aa0','#3a2118'],  // розовый
+    ['#8fbfd6','#22303a'],  // пыльно-голубой
+    ['#7fae95','#1f3226'],  // мятный
+    ['#efe7d3','#5a3f28'],  // кремовый
+    ['#b5613a','#fff4e6'],  // терракота
+  ];
+  const rots = [-7, 5, -4, 6, -3, 5, -6, 4, -2, 6, -5, 3, -6, 4];
+  let prev = -1;
+  [...text].forEach((ch, idx)=>{
+    const span = document.createElement('span');
+    span.className = 'rn ' + (idx % 2 ? 'serif' : 'sans');
+    let p; do { p = Math.floor(Math.random()*palette.length); } while(p === prev);
+    prev = p;
+    span.style.background = palette[p][0];
+    span.style.color = palette[p][1];
+    span.style.transform = 'rotate(' + rots[idx % rots.length] + 'deg)';
+    span.textContent = ch;
+    el.appendChild(span);
+  });
+})();
+
+shuffle();
+buildZones();
+</script>
+</body>
+</html>
